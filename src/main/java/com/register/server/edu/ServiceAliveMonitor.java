@@ -31,7 +31,7 @@ public class ServiceAliveMonitor {
      * 负责监控微服务存活状态的后台线程
      */
     private class Daemon extends Thread{
-        private Registry registry = Registry.getInstance();
+        private ServiceRegistry registry = ServiceRegistry.getInstance();
 
         @Override
         public void run() {
