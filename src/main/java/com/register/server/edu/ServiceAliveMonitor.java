@@ -1,5 +1,7 @@
 package com.register.server.edu;
 
+import com.sun.org.apache.xpath.internal.axes.SelfIteratorNoPredicate;
+
 import java.util.Map;
 
 /**
@@ -18,6 +20,7 @@ public class ServiceAliveMonitor {
         this.daemon = new Daemon();
         // 设置一个标志位，代表这个线程是一个daemon线程 -> 后台线程
         daemon.setDaemon(true);
+        daemon.setName("ServiceAliveMonitor");
     }
 
     /**
@@ -38,6 +41,13 @@ public class ServiceAliveMonitor {
             Map<String,Map<String,ServiceInstance>> registryMap = null;
             while (true) {
                 try {
+                    // 可以判断一下是否要开启自我保护机制
+                    SelfProtectionPolicy selfProtectionPolicy = SelfProtectionPolicy.getInstance();
+                    if (selfProtectionPolicy.isEnable()) {
+                        Thread.sleep(CHECK_ALIVE_INTERVAL);
+                        continue;
+                    }
+
                     registryMap = registry.getRegistry();
                     for (String serviceName : registryMap.keySet()) {
                         Map<String,ServiceInstance> serviceInstanceMap = registryMap.get(serviceName);
@@ -48,6 +58,14 @@ public class ServiceAliveMonitor {
                             // 从注册表中摘除这个服务实例
                             if (!serviceInstance.isAlive()) {
                                 registry.remove(serviceName,serviceInstance.getServiceInstanceId());
+
+                                // 更新自我保护机制的阈值
+                                synchronized (SelfIteratorNoPredicate.class) {
+                                    selfProtectionPolicy.setExpectedHeartbeatRate(
+                                            selfProtectionPolicy.getExpectedHeartbeatRate() - 2);
+                                    selfProtectionPolicy.setExpectedHeartbeatThreshold(
+                                            (long) (selfProtectionPolicy.getExpectedHeartbeatRate() * 0.85));
+                                }
                             }
                         }
                     }

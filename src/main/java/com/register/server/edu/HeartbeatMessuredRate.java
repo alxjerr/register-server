@@ -34,12 +34,6 @@ public class HeartbeatMessuredRate {
      * 增加一次最近一分钟的心跳次数
      */
     public synchronized void increment(){
-        long currentTime = System.currentTimeMillis();
-
-        if (currentTime - latestMinuteTimestamp > 60 * 1000) {
-            latestMinuteHeartbeatRate = 0L;
-            this.latestMinuteTimestamp = System.currentTimeMillis();
-        }
         latestMinuteHeartbeatRate++;
     }
 
@@ -49,6 +43,26 @@ public class HeartbeatMessuredRate {
      */
     public synchronized long get(){
         return latestMinuteHeartbeatRate;
+    }
+
+    private class Daemon extends Thread{
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    synchronized (HeartbeatMessuredRate.class) {
+                        long currentTime = System.currentTimeMillis();
+                        if (currentTime - latestMinuteTimestamp > 60 * 1000) {
+                            latestMinuteHeartbeatRate =  0L;
+                            latestMinuteTimestamp = System.currentTimeMillis();
+                        }
+                    }
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
 }
