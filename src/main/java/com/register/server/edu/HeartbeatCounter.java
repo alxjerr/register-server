@@ -1,10 +1,12 @@
 package com.register.server.edu;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * 心跳测量计数器
  */
+@SuppressWarnings("unused")
 public class HeartbeatCounter {
 
     /**
@@ -12,12 +14,18 @@ public class HeartbeatCounter {
      */
     private static HeartbeatCounter instance = new HeartbeatCounter();
 
-    private HeartbeatCounter(){}
+    private HeartbeatCounter(){
+        Daemon daemon = new Daemon();
+        daemon.setDaemon(true);
+        daemon.start();
+    }
 
     /**
      * 最近一分钟的心跳次数
      */
-    private AtomicLong latestMinuteHeartbeatRate = new AtomicLong(0L);
+//    private AtomicLong latestMinuteHeartbeatRate = new AtomicLong(0L);
+    private LongAdder latestMinuteHeartbeatRate = new LongAdder();
+
 
     /**
      * 最近一分钟的时间戳
@@ -36,7 +44,7 @@ public class HeartbeatCounter {
      * 增加一次最近一分钟的心跳次数
      */
     public /*synchronized*/void increment(){
-        latestMinuteHeartbeatRate.incrementAndGet();
+        latestMinuteHeartbeatRate.increment();
     }
 
     /**
@@ -44,7 +52,7 @@ public class HeartbeatCounter {
      * @return
      */
     public /*synchronized*/ long get(){
-        return latestMinuteHeartbeatRate.get();
+        return latestMinuteHeartbeatRate.longValue();
     }
 
     private class Daemon extends Thread{
@@ -54,7 +62,8 @@ public class HeartbeatCounter {
                 try {
                     long currentTime = System.currentTimeMillis();
                     if (currentTime - latestMinuteTimestamp > 60 * 1000) {
-                        latestMinuteHeartbeatRate =  new AtomicLong(0L);
+//                        latestMinuteHeartbeatRate =  new AtomicLong(0L);
+                        latestMinuteHeartbeatRate = new LongAdder();
                         latestMinuteTimestamp = System.currentTimeMillis();
                     }
                     Thread.sleep(1000);

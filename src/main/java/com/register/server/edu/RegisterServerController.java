@@ -1,5 +1,6 @@
 package com.register.server.edu;
 
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -26,6 +27,15 @@ public class RegisterServerController {
             serviceInstance.setServiceName(registerRequest.getServiceName());
 
             registry.register(serviceInstance);
+
+            // 更新自我保护的阈值
+            synchronized (SelfProtectionPolicy.class) {
+                SelfProtectionPolicy selfProtectionPolicy = SelfProtectionPolicy.getInstance();
+                selfProtectionPolicy.setExpectedHeartbeatRate(
+                        selfProtectionPolicy.getExpectedHeartbeatRate() + 2);
+                selfProtectionPolicy.setExpectedHeartbeatThreshold(
+                        (long) (selfProtectionPolicy.getExpectedHeartbeatRate() * 0.85));
+            }
             registerResponse.setStatus(RegisterResponse.SUCCESS);
         } catch (Exception e) {
             e.fillInStackTrace();
@@ -60,11 +70,19 @@ public class RegisterServerController {
     }
 
     /**
-     * 拉取服务注册表
+     * 拉取全量服务注册表
      * @return
      */
     public Map<String,Map<String,ServiceInstance>> fetchServiceRegistry(){
         return registry.getRegistry();
+    }
+
+    /**
+     * 拉取增量注册表
+     * @return
+     */
+    public LinkedList<ServiceRegistry.RecentlyChangedServiceInstance> fetchDeltaServiceRegistry(){
+        return registry.getRecentlyChangedQueue();
     }
 
     /**
@@ -74,6 +92,15 @@ public class RegisterServerController {
      */
     public void  cancel(String serviceName,String serviceInstanceId){
         registry.remove(serviceName,serviceInstanceId);
+
+        // 更新自我保护机制的阈值
+        synchronized (SelfProtectionPolicy.class) {
+            SelfProtectionPolicy selfProtectionPolicy = SelfProtectionPolicy.getInstance();
+            selfProtectionPolicy.setExpectedHeartbeatRate(
+                    selfProtectionPolicy.getExpectedHeartbeatRate() - 2);
+            selfProtectionPolicy.setExpectedHeartbeatThreshold(
+                    (long) (selfProtectionPolicy.getExpectedHeartbeatRate() * 0.85));
+        }
     }
 
 }
