@@ -23,9 +23,7 @@ public class HeartbeatCounter {
     /**
      * 最近一分钟的心跳次数
      */
-//    private AtomicLong latestMinuteHeartbeatRate = new AtomicLong(0L);
-    private LongAdder latestMinuteHeartbeatRate = new LongAdder();
-
+    private AtomicLong latestMinuteHeartbeatRate = new AtomicLong(0L);
 
     /**
      * 最近一分钟的时间戳
@@ -44,7 +42,7 @@ public class HeartbeatCounter {
      * 增加一次最近一分钟的心跳次数
      */
     public /*synchronized*/void increment(){
-        latestMinuteHeartbeatRate.increment();
+        latestMinuteHeartbeatRate.incrementAndGet();
     }
 
     /**
@@ -52,7 +50,7 @@ public class HeartbeatCounter {
      * @return
      */
     public /*synchronized*/ long get(){
-        return latestMinuteHeartbeatRate.longValue();
+        return latestMinuteHeartbeatRate.get();
     }
 
     private class Daemon extends Thread{
@@ -62,8 +60,13 @@ public class HeartbeatCounter {
                 try {
                     long currentTime = System.currentTimeMillis();
                     if (currentTime - latestMinuteTimestamp > 60 * 1000) {
-//                        latestMinuteHeartbeatRate =  new AtomicLong(0L);
-                        latestMinuteHeartbeatRate = new LongAdder();
+                        while (true) {
+                            Long expectedValue = latestMinuteHeartbeatRate.get();
+                            if (latestMinuteHeartbeatRate.compareAndSet(expectedValue,0L)) {
+                                break;
+                            }
+                        }
+
                         latestMinuteTimestamp = System.currentTimeMillis();
                     }
                     Thread.sleep(1000);

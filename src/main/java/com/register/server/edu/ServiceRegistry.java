@@ -130,7 +130,7 @@ public class ServiceRegistry {
     /**
      * 最近变化的服务实例
      */
-    class RecentlyChangedServiceInstance{
+    static class RecentlyChangedServiceInstance{
 
         /**
          * 服务实例
