@@ -73,16 +73,26 @@ public class RegisterServerController {
      * 拉取全量服务注册表
      * @return
      */
-    public Map<String,Map<String,ServiceInstance>> fetchServiceRegistry(){
-        return registry.getRegistry();
+    public Applications fetchFullRegistry(){
+        try {
+            registry.readLock();
+            return new Applications(registry.getRegistry());
+        } finally {
+            registry.readUnlock();
+        }
     }
 
     /**
      * 拉取增量注册表
      * @return
      */
-    public LinkedList<ServiceRegistry.RecentlyChangedServiceInstance> fetchDeltaServiceRegistry(){
-        return registry.getRecentlyChangedQueue();
+    public DeltaRegistry fetchDeltaRegistry(){
+        try {
+            registry.readLock();
+            return registry.getDeltaRegistry();
+        } finally {
+            registry.readUnlock();
+        }
     }
 
     /**
